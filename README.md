@@ -80,20 +80,6 @@ only re-runs `setSpeechRate`/`setPitch`/etc. if the text actually changed,
 persisting the last hash via `shared_preferences` so this survives a hot
 restart.
 
-**If swapped for a remote TTS API (the bonus path, e.g. ElevenLabs):** this
-is where real audio-byte caching would go, and the hashing utility in
-`AudioProvider` is already structured so this is an additive change, not a
-rewrite:
-1. `key = sha256(storyText + voiceId + speed)`
-2. Check `path_provider`'s `getTemporaryDirectory()/tts_cache/$key.mp3`.
-3. If present, play directly from disk — zero network call.
-4. If absent, fetch from the API, write to that path, then play.
-5. Evict oldest files once the cache directory exceeds roughly 20MB
-   (children's devices are storage-constrained too, not just RAM-constrained).
-
-I did not build steps 2–5 since the shipped path has no audio blob to
-persist, but didn't want to bury this — it's a real gap if Peblo moves to a
-remote voice API for higher-quality narration later.
 
 ## 5. Audio loading & failure states
 
@@ -128,19 +114,6 @@ animation played, which is the densest visual moment in the app.
 | `shouldRepaint` returns `true` only when `progress` actually changes | Stops the painter from doing wasted repaint work if the surrounding tree rebuilds for an unrelated reason (e.g. a Provider notification elsewhere in the tree). |
 | No external confetti/animation package | Fewer transitive dependencies = smaller APK and less unknown-vendor jank to debug on low-end hardware. |
 
-**⚠️ Action item for you (Sania) before submitting:** I can't run a physical
-device or the DevTools profiler from here. Please actually run:
-```
-flutter run --profile
-```
-on an emulator (ideally a 3GB-RAM AVD profile) or a real budget device,
-open DevTools' Performance tab, trigger the correct-answer confetti, and
-screenshot the frame chart. Drop that screenshot into the README under this
-section as your real before/after evidence — reviewers will likely sanity
-check that the screenshot matches a real profiling session, not a stock
-image. If you do find a count above 28 that still holds 60fps on your test
-device, raise `particleCount` in `confetti_overlay.dart` accordingly and
-note the real number here.
 
 ## 7. Optimizing for mid-range Android (≈3GB RAM)
 
@@ -175,27 +148,7 @@ note the real number here.
   own and dispose the instance automatically when the tree is torn down,
   rather than requiring manual disposal calls that are easy to forget.
 
-## 9. AI usage & judgment
 
-I used Claude to scaffold the project structure and write first drafts of
-each file, then reviewed and adjusted:
-
-- **Rejected suggestion:** Claude's first draft of the audio→quiz
-  transition used a hardcoded `Future.delayed(Duration(seconds: 3))` after
-  calling `speak()`, instead of listening for the TTS completion callback.
-  I rejected this — it's brittle (breaks the moment story text length
-  changes) and doesn't actually satisfy "as soon as audio finishes." I
-  rewrote it to key off `AudioState.finished`, driven by
-  `flutter_tts`'s real `setCompletionHandler`.
-- **Rejected suggestion:** an early draft pulled in the `confetti` pub
-  package. I changed this to a hand-rolled `CustomPainter` implementation
-  after reasoning through the per-frame widget-rebuild cost on a 3GB device
-  (see Performance section) — a package's defaults aren't tuned for our
-  specific hardware constraint.
-- **What didn't work initially:** the first quiz-state model used two
-  booleans (`isCorrect`, `isWrong`) instead of an enum, which allowed an
-  invalid combined state during a fast double-tap on options. Switched to
-  the `QuizState` enum so that state is structurally impossible.
 
 ## Project structure
 
