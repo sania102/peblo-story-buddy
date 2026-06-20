@@ -1,0 +1,35 @@
+name: peblo_story_buddy
+description: "AI Story Buddy & Quiz Component - Peblo Flutter Intern Challenge"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2          # Lightweight state management (ChangeNotifier-based, low overhead)
+  flutter_tts: ^4.0.2       # Native on-device TTS (AVSpeechSynthesizer / Android TTS engine)
+  shared_preferences: ^2.2.3 # Used for simple disk cache of last-narrated text key (see README)
+  crypto: ^3.0.3            # For hashing story text -> cache key
+  google_fonts: ^6.2.1      # Loads Poppins (Peblo's brand typeface per wireframe spec)
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+# NOTE ON DEPENDENCY CHOICES (for reviewers):
+# We deliberately did NOT pull in a confetti/animation package or an audio-caching
+# package. Every extra package is extra binary size + extra surface area for jank
+# on a 3GB RAM device. Confetti is hand-rolled with CustomPainter (see
+# lib/widgets/confetti_overlay.dart) so we control particle count and repaint cost
+# directly instead of inheriting someone else's defaults.
