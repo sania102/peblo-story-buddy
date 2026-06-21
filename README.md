@@ -2,7 +2,7 @@
 
 A single-screen Flutter app: tap "Read Me a Story," Pip the robot narrates a
 story via on-device TTS, and the moment narration finishes, a fully
-data-driven quiz fades in — wrong answers shake the card with haptics,
+data-driven quiz fades in wrong answers shake the card with haptics,
 correct answers trigger confetti and unlock the next question (3 questions
 in this build, pulled from a single `kQuizBank` list that stands in for a
 real backend feed). Visual styling (colours, typography) follows Peblo's
@@ -15,7 +15,7 @@ Poppins typeface.
 
 I chose Flutter over native Swift because:
 - The brief explicitly allows either, and our target audience is
-  Android-heavy (mid-range, ~3GB RAM) — Flutter lets me build and test
+  Android-heavy (mid-range, ~3GB RAM) Flutter lets me build and test
   directly for that hardware profile rather than building for iOS and
   reasoning about Android secondhand.
 - `flutter_tts` wraps both AVSpeechSynthesizer and Android's native TTS
@@ -26,7 +26,7 @@ I chose Flutter over native Swift because:
   needs. Riverpod's compile-time safety wins on larger apps; for a
   single-screen component, Provider is less ceremony and still
   `ChangeNotifier`-based, so the team can graduate to Riverpod later without
-  a rewrite — only the provider declarations move.
+  a rewrite only the provider declarations move.
 
 ## 2. Audio → Quiz transition
 
@@ -49,12 +49,12 @@ This was the part I treated as non-negotiable to get right, since the brief
 calls it out as the most important piece.
 
 - `QuizQuestion.fromJson()` (`lib/models/quiz_model.dart`) parses the JSON
-  into a `List<String> options` — never `option1`/`option2`/`option3`
+  into a `List<String> options`  never `option1`/`option2`/`option3`
   fields. There is no code path anywhere in the app that assumes a specific
   option count.
 - `QuizCard` (`lib/widgets/quiz_card.dart`) renders the question via
   `question.options.map((option) => _OptionTile(...))`. Feed it 3 options,
-  4, or 10 — the `Column` just grows.
+  4, or 10  the `Column` just grows.
 - Defensive parsing: if a future backend payload sends an `answer` that
   isn't actually present in `options`, `fromJson` throws a `FormatException`
   immediately rather than silently shipping an unwinnable quiz. Covered in
@@ -65,7 +65,7 @@ calls it out as the most important piece.
   deliberately different option counts (4, 3, 5) to prove the renderer
   doesn't special-case any of them. On a correct answer, a "Next Question"
   button calls `QuizProvider.loadQuestion()` again with the next item in the
-  list — the *same* method used for the first question, no separate
+  list  the *same* method used for the first question, no separate
   "advance" code path. On the last question, the button is replaced with a
   finishing message instead of a dead end. Swapping `kQuizBank` for
   `await api.getNextQuestion()` is a one-line change at the call site.
@@ -73,7 +73,7 @@ calls it out as the most important piece.
 ## 4. Caching approach
 
 **As shipped (native, on-device TTS):** there is no remote audio file to
-cache — `AVSpeechSynthesizer`/Android TTS synthesize speech live from text,
+cache  `AVSpeechSynthesizer`/Android TTS synthesize speech live from text,
 so "caching" here means avoiding redundant engine reconfiguration, not
 redundant network calls. `AudioProvider` hashes the story text (SHA-256) and
 only re-runs `setSpeechRate`/`setPitch`/etc. if the text actually changed,
@@ -84,7 +84,7 @@ restart.
 ## 5. Audio loading & failure states
 
 `AudioState` is an enum (`idle, loading, playing, finished, error`), not a
-pair of booleans — this makes "loading AND error at the same time" a
+pair of booleans  this makes "loading AND error at the same time" a
 compile-time impossibility instead of a runtime bug to chase down.
 `StoryCard` switches on this enum directly:
 - `loading` → spinner + "Getting the story ready..."
@@ -117,19 +117,19 @@ animation played, which is the densest visual moment in the app.
 
 ## 7. Optimizing for mid-range Android (≈3GB RAM)
 
-- No external image/Lottie assets — the buddy character is drawn with
+- No external image/Lottie assets  the buddy character is drawn with
   `Container`/`BoxDecoration` primitives (`buddy_widget.dart`), so there's
   zero image decode cost and no asset bundle bloat.
 - `const` constructors used wherever the widget has no dynamic data, so
   Flutter's widget diffing can skip rebuilding static subtrees entirely
   (enforced via `prefer_const_constructors` lint rule).
-- All `AnimationController`s are disposed in `dispose()` — confirmed via
-  manual review (see leak section below) — so back-to-back story sessions
+- All `AnimationController`s are disposed in `dispose()` confirmed via
+  manual review (see leak section below)  so back-to-back story sessions
   don't accumulate orphaned tickers over a long play session, which on a
   3GB device is the difference between staying smooth and eventually
   jank-stuttering after 20 minutes of use.
 - Minimal dependency footprint (`provider`, `flutter_tts`,
-  `shared_preferences`, `crypto` — no confetti, no Lottie, no state-mgmt
+  `shared_preferences`, `crypto`  no confetti, no Lottie, no state-mgmt
   framework heavier than necessary) keeps APK size and cold-start time down.
 
 ## 8. Memory management / leak-free audio handling
